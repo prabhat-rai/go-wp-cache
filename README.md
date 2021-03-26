@@ -1,0 +1,1 @@
+# go-wp-cache
