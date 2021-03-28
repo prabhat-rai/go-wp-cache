@@ -11,6 +11,7 @@ func (app *application) routes() http.Handler {
 
 	mux := pat.New()
 	mux.Get("/", http.HandlerFunc(app.home))
+	mux.Get("/fetch-wp", http.HandlerFunc(app.fetchWordpressData))
 
 	return standardMiddleware.Then(mux)
 }
