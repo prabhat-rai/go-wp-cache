@@ -36,7 +36,7 @@ type TagResponse struct {
 	Tags	[]CategoryTag 	`json:"tags"`
 }
 
-func fetchWordpressData(wpSite string, authorId string)  {
+func fetchWordpressData(wpSite string, authorId string) []string  {
 	WordpressBaseUrl := "https://public-api.wordpress.com/rest/v1.1/sites/" + wpSite
 	categoryTagFieldList := "?order_by=count&order=DESC&number=&fields=slug,name,post_count"
 
@@ -44,14 +44,16 @@ func fetchWordpressData(wpSite string, authorId string)  {
 	categoryUrl := WordpressBaseUrl + "/categories/" + categoryTagFieldList
 	tagUrl := WordpressBaseUrl + "/tags/" + categoryTagFieldList
 
-	response := callWpApi(postUrl, "posts")
-	fmt.Printf("\nAPI Response for Posts %s\n", response)
+	response := string(callWpApi(postUrl, "posts"))
+	categoryResponse := string(callWpApi(categoryUrl, "categories"))
+	tagResponse := string(callWpApi(tagUrl, "tags"))
 
-	response = callWpApi(categoryUrl, "categories")
-	fmt.Printf("\nAPI Response For Categories %s\n", response)
-
-	response = callWpApi(tagUrl, "tags")
-	fmt.Printf("\nAPI Response for Tags  %s\n", response)
+	responseArray := []string {
+		response,
+		categoryResponse,
+		tagResponse,
+	}
+	return responseArray
 }
 
 func callWpApi (url string, callType string) []byte {
@@ -76,6 +78,12 @@ func callWpApi (url string, callType string) []byte {
 		fmt.Print(err.Error())
 	}
 
+	// logWpResponse(response, callType)
+
+	return response
+}
+
+func logWpResponse(response []byte, callType string) {
 	switch callType {
 		case "posts":
 			var responseObject PostResponse
@@ -93,7 +101,4 @@ func callWpApi (url string, callType string) []byte {
 			fmt.Printf("\n\nAPI Response as struct %+v\n", responseObject)
 			break
 	}
-
-
-	return response
 }
