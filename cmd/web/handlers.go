@@ -10,7 +10,12 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 
 
 func (app *application) fetchWordpressData(w http.ResponseWriter, r *http.Request) {
-	response := fetchWordpressData("pkrai.wordpress.com", "71978482")
+	site := r.URL.Query().Get("site")
+	app.infoLog.Printf("%s", site)
+	if site == "" {
+		site = "pkrai.wordpress.com"
+	}
+	response := fetchWordpressData(site, "71978482")
 	finalResponse := "{\"posts\" : " + response[0] + ", \"categories\" : " + response[1] + ", \"tags\" : " + response[2] +"}"
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(finalResponse))
