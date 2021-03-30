@@ -17,7 +17,6 @@ type Post struct {
 type PostResponse struct {
 	Found	int 	`json:"found"`
 	Posts   []Post 	`json:"posts"`
-	Status 	int    	`json:"status"`
 }
 
 type CategoryTag struct {
@@ -38,11 +37,12 @@ type TagResponse struct {
 
 func fetchWordpressData(wpSite string, authorId string) []string  {
 	WordpressBaseUrl := "https://public-api.wordpress.com/rest/v1.1/sites/" + wpSite
-	categoryTagFieldList := "?order_by=count&order=DESC&number=&fields=slug,name,post_count"
+	postQueryParams := "&number=3&status=publish&fields=ID,title,date,excerpt"
+	categoryTagParams := "?order_by=count&order=DESC&number=&fields=slug,name,post_count"
 
-	postUrl := WordpressBaseUrl + "/posts/?number=3&author=" + authorId + "&status=publish&fields=ID,title,date,excerpt"
-	categoryUrl := WordpressBaseUrl + "/categories/" + categoryTagFieldList
-	tagUrl := WordpressBaseUrl + "/tags/" + categoryTagFieldList
+	postUrl := WordpressBaseUrl + "/posts/?author=" + authorId + postQueryParams
+	categoryUrl := WordpressBaseUrl + "/categories/" + categoryTagParams
+	tagUrl := WordpressBaseUrl + "/tags/" + categoryTagParams
 
 	response := string(callWpApi(postUrl, "posts"))
 	categoryResponse := string(callWpApi(categoryUrl, "categories"))
