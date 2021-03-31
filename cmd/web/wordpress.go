@@ -8,47 +8,47 @@ import (
 )
 
 type Post struct {
-	ID 		int 	`json:"id"`
-	Date 	string 	`json:"date"`
-	Title 	string 	`json:"title"`
-	Excerpt string 	`json:"excerpt"`
+	ID      int    `json:"id"`
+	Date    string `json:"date"`
+	Title   string `json:"title"`
+	Excerpt string `json:"excerpt"`
 }
 
 type PostResponse struct {
-	Found	int 	`json:"found"`
-	Posts   []Post 	`json:"posts"`
-	Status 	int    	`json:"status"`
+	Found int    `json:"found"`
+	Posts []Post `json:"posts"`
 }
 
 type CategoryTag struct {
-	Name 		string 	`json:"name"`
-	Slug 		string 	`json:"slug"`
-	PostCount 	int 	`json:"post_count"`
+	Name      string `json:"name"`
+	Slug      string `json:"slug"`
+	PostCount int    `json:"post_count"`
 }
 
 type CategoryResponse struct {
-	Found     	int 			`json:"found"`
-	Categories  []CategoryTag 	`json:"categories"`
+	Found      int           `json:"found"`
+	Categories []CategoryTag `json:"categories"`
 }
 
 type TagResponse struct {
-	Found	int 			`json:"found"`
-	Tags	[]CategoryTag 	`json:"tags"`
+	Found int           `json:"found"`
+	Tags  []CategoryTag `json:"tags"`
 }
 
-func fetchWordpressData(wpSite string, authorId string) []string  {
+func fetchWordpressData(wpSite string, authorId string) []string {
 	WordpressBaseUrl := "https://public-api.wordpress.com/rest/v1.1/sites/" + wpSite
-	categoryTagFieldList := "?order_by=count&order=DESC&number=&fields=slug,name,post_count"
+	postQueryParams := "&number=3&status=publish&fields=ID,title,date,excerpt"
+	categoryTagParams := "?order_by=count&order=DESC&number=&fields=slug,name,post_count"
 
-	postUrl := WordpressBaseUrl + "/posts/?number=3&author=" + authorId + "&status=publish&fields=ID,title,date,excerpt"
-	categoryUrl := WordpressBaseUrl + "/categories/" + categoryTagFieldList
-	tagUrl := WordpressBaseUrl + "/tags/" + categoryTagFieldList
+	postUrl := WordpressBaseUrl + "/posts/?author=" + authorId + postQueryParams
+	categoryUrl := WordpressBaseUrl + "/categories/" + categoryTagParams
+	tagUrl := WordpressBaseUrl + "/tags/" + categoryTagParams
 
-	response := string(callWpApi(postUrl, "posts"))
-	categoryResponse := string(callWpApi(categoryUrl, "categories"))
-	tagResponse := string(callWpApi(tagUrl, "tags"))
+	response := callWpApi(postUrl, "posts")
+	categoryResponse := callWpApi(categoryUrl, "categories")
+	tagResponse := callWpApi(tagUrl, "tags")
 
-	responseArray := []string {
+	responseArray := []string{
 		response,
 		categoryResponse,
 		tagResponse,
@@ -56,7 +56,7 @@ func fetchWordpressData(wpSite string, authorId string) []string  {
 	return responseArray
 }
 
-func callWpApi (url string, callType string) []byte {
+func callWpApi(url string, callType string) string {
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -78,27 +78,31 @@ func callWpApi (url string, callType string) []byte {
 		fmt.Print(err.Error())
 	}
 
-	// logWpResponse(response, callType)
-
-	return response
+	return convertResponse(response, callType)
 }
 
-func logWpResponse(response []byte, callType string) {
+func convertResponse(response []byte, callType string) string {
+	var responseObject interface{}
+
 	switch callType {
-		case "posts":
-			var responseObject PostResponse
-			json.Unmarshal(response, &responseObject)
-			fmt.Printf("\n\nAPI Response as struct %+v\n", responseObject)
-			break
-		case "categories":
-			var responseObject CategoryResponse
-			json.Unmarshal(response, &responseObject)
-			fmt.Printf("\n\nAPI Response as struct %+v\n", responseObject)
-			break
-		case "tags":
-			var responseObject TagResponse
-			json.Unmarshal(response, &responseObject)
-			fmt.Printf("\n\nAPI Response as struct %+v\n", responseObject)
-			break
+	case "posts":
+		responseObject = PostResponse{}
+		break
+	case "categories":
+		responseObject = CategoryResponse{}
+		break
+	case "tags":
+		responseObject = TagResponse{}
+		break
 	}
+
+	json.Unmarshal(response, &responseObject)
+	responseStr := prettyPrint(responseObject)
+	// fmt.Printf("\n\nNew API Response as struct %s\n", responseStr)
+	return responseStr
+}
+
+func prettyPrint(responseObject interface{}) string {
+	responseStr, _ := json.MarshalIndent(responseObject, "", "  ")
+	return string(responseStr)
 }
