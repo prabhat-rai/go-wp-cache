@@ -7,33 +7,33 @@ import (
 	"net/http"
 )
 
-type Post struct {
-	ID      int    `json:"id"`
-	Date    string `json:"date"`
-	Title   string `json:"title"`
-	Excerpt string `json:"excerpt"`
-}
+//type Post struct {
+//	ID      int    `json:"id"`
+//	Date    string `json:"date"`
+//	Title   string `json:"title"`
+//	Excerpt string `json:"excerpt"`
+//}
 
 type PostResponse struct {
 	Found int    `json:"found"`
-	Posts []Post `json:"posts"`
+	Posts []interface{} `json:"posts"`
 }
 
-type CategoryTag struct {
-	Name      string `json:"name"`
-	Slug      string `json:"slug"`
-	PostCount int    `json:"post_count"`
-}
-
-type CategoryResponse struct {
-	Found      int           `json:"found"`
-	Categories []CategoryTag `json:"categories"`
-}
-
-type TagResponse struct {
-	Found int           `json:"found"`
-	Tags  []CategoryTag `json:"tags"`
-}
+//type CategoryTag struct {
+//	Name      string `json:"name"`
+//	Slug      string `json:"slug"`
+//	PostCount int    `json:"post_count"`
+//}
+//
+//type CategoryResponse struct {
+//	Found      int           `json:"found"`
+//	Categories []interface{} `json:"categories"` // Try tonight
+//}
+//
+//type TagResponse struct {
+//	Found int           `json:"found"`
+//	Tags  []interface{} `json:"tags"`
+//}
 
 func fetchWordpressData(wpSite string, authorId string) []string {
 	WordpressBaseUrl := "https://public-api.wordpress.com/rest/v1.1/sites/" + wpSite
@@ -84,21 +84,23 @@ func callWpApi(url string, callType string) string {
 func convertResponse(response []byte, callType string) string {
 	var responseObject interface{}
 
-	switch callType {
-	case "posts":
-		responseObject = PostResponse{}
-		break
-	case "categories":
-		responseObject = CategoryResponse{}
-		break
-	case "tags":
-		responseObject = TagResponse{}
-		break
-	}
+	responseObject = PostResponse{}
+
+	//switch callType {
+	//	case "posts":
+	//		responseObject = PostResponse{}
+	//		break
+	//	case "categories":
+	//		responseObject = CategoryResponse{}
+	//		break
+	//	case "tags":
+	//		responseObject = TagResponse{}
+	//		break
+	//}
 
 	json.Unmarshal(response, &responseObject)
 	responseStr := prettyPrint(responseObject)
-	// fmt.Printf("\n\nNew API Response as struct %s\n", responseStr)
+	fmt.Printf("\n\nNew API Response as struct %s\n", responseStr)
 	return responseStr
 }
 
