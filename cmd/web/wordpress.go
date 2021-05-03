@@ -35,28 +35,53 @@ type TagResponse struct {
 	Tags  []CategoryTag `json:"tags"`
 }
 
-func fetchWordpressData(wpSite string, authorId string) []string {
-	WordpressBaseUrl := "https://public-api.wordpress.com/rest/v1.1/sites/" + wpSite
+var responseArray map[string]string
+var concurrentRequest bool
+
+func fetchWordPressData(wpSite string, authorId string) []string {
+	responseArray = map[string]string{"posts": "", "categories": "", "tags" : ""}
+	concurrentRequest = false
+	lengthOfResponse := len(responseArray);
+	wpUrls := getWordPressUrls(wpSite, authorId)
+	ch := make(chan string, 10)
+
+	for key, url := range wpUrls {
+		if concurrentRequest {
+			go callWpApi(url, key, ch)
+		} else {
+			callWpApi(url, key, ch)
+		}
+	}
+
+	response := make([]string, 0, lengthOfResponse)
+
+	if concurrentRequest {
+		for i := 0; i < lengthOfResponse; i++ {
+			response = append(response, <-ch)
+		}
+	} else {
+		for  _, value := range responseArray {
+			response = append(response, value)
+		}
+	}
+
+
+	return response
+}
+
+func getWordPressUrls(wpSite string, authorId string) map[string] string {
+	wordPressBaseUrl := "https://public-api.wordpress.com/rest/v1.1/sites/" + wpSite
 	postQueryParams := "&number=3&status=publish&fields=ID,title,date,excerpt"
 	categoryTagParams := "?order_by=count&order=DESC&number=&fields=slug,name,post_count"
 
-	postUrl := WordpressBaseUrl + "/posts/?author=" + authorId + postQueryParams
-	categoryUrl := WordpressBaseUrl + "/categories/" + categoryTagParams
-	tagUrl := WordpressBaseUrl + "/tags/" + categoryTagParams
+	postUrl := wordPressBaseUrl + "/posts/?author=" + authorId + postQueryParams
+	categoryUrl := wordPressBaseUrl + "/categories/" + categoryTagParams
+	tagUrl := wordPressBaseUrl + "/tags/" + categoryTagParams
 
-	response := callWpApi(postUrl, "posts")
-	categoryResponse := callWpApi(categoryUrl, "categories")
-	tagResponse := callWpApi(tagUrl, "tags")
-
-	responseArray := []string{
-		response,
-		categoryResponse,
-		tagResponse,
-	}
-	return responseArray
+	return map[string]string{"posts": postUrl, "categories": categoryUrl, "tags" : tagUrl}
 }
 
-func callWpApi(url string, callType string) string {
+func callWpApi(url string, callType string, ch chan string) {
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -78,7 +103,11 @@ func callWpApi(url string, callType string) string {
 		fmt.Print(err.Error())
 	}
 
-	return convertResponse(response, callType)
+	if concurrentRequest {
+		ch <- convertResponse(response, callType)
+	} else {
+		responseArray[callType] = convertResponse(response, callType)
+	}
 }
 
 func convertResponse(response []byte, callType string) string {
