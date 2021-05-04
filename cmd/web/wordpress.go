@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
 )
 
 type Post struct {
@@ -38,10 +39,10 @@ type TagResponse struct {
 var responseArray map[string]string
 var concurrentRequest bool
 
-func fetchWordPressData(wpSite string, authorId string) []string {
-	responseArray = map[string]string{"posts": "", "categories": "", "tags" : ""}
+func fetchWordPressData(wpSite string, authorId string) map[string]string {
+	responseArray = map[string]string{"posts": "", "categories": "", "tags": ""}
 	concurrentRequest = false
-	lengthOfResponse := len(responseArray);
+	lengthOfResponse := len(responseArray)
 	wpUrls := getWordPressUrls(wpSite, authorId)
 	ch := make(chan string, 10)
 
@@ -53,23 +54,14 @@ func fetchWordPressData(wpSite string, authorId string) []string {
 		}
 	}
 
-	response := make([]string, 0, lengthOfResponse)
-
-	if concurrentRequest {
-		for i := 0; i < lengthOfResponse; i++ {
-			response = append(response, <-ch)
-		}
-	} else {
-		for  _, value := range responseArray {
-			response = append(response, value)
-		}
+	for i := 0; i < lengthOfResponse; i++ {
+		fmt.Printf("\n %s\n", <-ch)
 	}
 
-
-	return response
+	return responseArray
 }
 
-func getWordPressUrls(wpSite string, authorId string) map[string] string {
+func getWordPressUrls(wpSite string, authorId string) map[string]string {
 	wordPressBaseUrl := "https://public-api.wordpress.com/rest/v1.1/sites/" + wpSite
 	postQueryParams := "&number=3&status=publish&fields=ID,title,date,excerpt"
 	categoryTagParams := "?order_by=count&order=DESC&number=&fields=slug,name,post_count"
@@ -78,10 +70,11 @@ func getWordPressUrls(wpSite string, authorId string) map[string] string {
 	categoryUrl := wordPressBaseUrl + "/categories/" + categoryTagParams
 	tagUrl := wordPressBaseUrl + "/tags/" + categoryTagParams
 
-	return map[string]string{"posts": postUrl, "categories": categoryUrl, "tags" : tagUrl}
+	return map[string]string{"posts": postUrl, "categories": categoryUrl, "tags": tagUrl}
 }
 
 func callWpApi(url string, callType string, ch chan string) {
+	startTime := time.Now()
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -103,11 +96,9 @@ func callWpApi(url string, callType string, ch chan string) {
 		fmt.Print(err.Error())
 	}
 
-	if concurrentRequest {
-		ch <- convertResponse(response, callType)
-	} else {
-		responseArray[callType] = convertResponse(response, callType)
-	}
+	apiResponse := convertResponse(response, callType)
+	responseArray[callType] = apiResponse
+	ch <- "Time taken for loading " + callType + " is " + time.Since(startTime).String()
 }
 
 func convertResponse(response []byte, callType string) string {
